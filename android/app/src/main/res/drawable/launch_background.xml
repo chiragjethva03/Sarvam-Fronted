@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <!-- Set the background color if needed -->
+        <color android:color="#F6FFFB"/>
+    </item>
+    <item>
+        <!-- Replace this with your custom splash image -->
+        <bitmap android:gravity="center" android:src="@drawable/splash"/>
+    </item>
+</layer-list>
