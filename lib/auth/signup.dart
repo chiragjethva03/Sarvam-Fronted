@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -51,7 +52,6 @@ class _SignUpState extends State<SignUp> {
           "Password must contain uppercase, lowercase, number, and special character!");
       return;
     }
-
     // Call API to send OTP
     final String otpApiUrl = "http://192.168.96.182:4000/send-otp";
     try {
@@ -76,34 +76,101 @@ class _SignUpState extends State<SignUp> {
     showModalBottomSheet(
       context: context,
       isDismissible: false,
+      isScrollControlled: true,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Enter OTP",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: "Enter OTP",
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  if (value.length == 6) {
-                    _verifyOtp(value);
-                  }
-                },
+              Text(
+                "Verify Your OTP",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "Enter the 6-digit OTP sent to your email",
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               SizedBox(height: 20),
-              isLoading
+              Form(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(6, (index) {
+                    return SizedBox(
+                      width: 40,
+                      child: TextField(
+                        controller: _otpControllers[index],
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        maxLength: 1,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          counterText: "",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            if (index < 5) {
+                              FocusScope.of(context).nextFocus();
+                            } else {
+                              _verifyOtp(
+                                  _otpControllers.map((c) => c.text).join());
+                            }
+                          }
+                        },
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              SizedBox(height: 20),
+              isVerifying
                   ? CircularProgressIndicator()
-                  : TextButton(
-                      onPressed: _resendOtp,
-                      child: Text("Resend OTP"),
+                  : Text(
+                      otpErrorMessage,
+                      style: TextStyle(color: Colors.red, fontSize: 14),
                     ),
+              SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black), // Default text style
+                    children: [
+                      TextSpan(
+                        text: "Don't receive OTP? click to ",
+                      ),
+                      TextSpan(
+                        text: "Resend",
+                        style: TextStyle(
+                          color: Colors.blue, // Blue color for Resend text
+                          fontSize: 16,
+                          decoration:
+                              TextDecoration.underline, // Underline effect
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            _resendOtp(); // Call function when "Resend" is clicked
+                            _showSnackbar(
+                                "OTP Resent! Check your email."); // Show Snackbar
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -111,9 +178,22 @@ class _SignUpState extends State<SignUp> {
     );
   }
 
-  Future<void> _verifyOtp(String otp) async {
-    final String verifyOtpApiUrl = "http://192.168.96.182:4000/verify-otp";
+// List of OTP controllers
+  List<TextEditingController> _otpControllers =
+      List.generate(6, (index) => TextEditingController());
 
+// State variables
+  bool isVerifying = false;
+  String otpErrorMessage = "";
+
+// Updated OTP verification function
+  Future<void> _verifyOtp(String otp) async {
+    setState(() {
+      isVerifying = true;
+      otpErrorMessage = "";
+    });
+
+    final String verifyOtpApiUrl = "http://192.168.96.182:4000/verify-otp";
     try {
       final response = await http.post(
         Uri.parse(verifyOtpApiUrl),
@@ -125,10 +205,18 @@ class _SignUpState extends State<SignUp> {
         Navigator.pop(context);
         _sendDataToBackend();
       } else {
-        _showSnackbar("Invalid OTP. Try again.");
+        setState(() {
+          otpErrorMessage = "Invalid OTP. Try again.";
+        });
       }
     } catch (e) {
-      _showSnackbar("Error connecting to server!");
+      setState(() {
+        otpErrorMessage = "Error connecting to server!";
+      });
+    } finally {
+      setState(() {
+        isVerifying = false;
+      });
     }
   }
 
