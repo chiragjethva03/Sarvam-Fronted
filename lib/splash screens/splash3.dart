@@ -5,10 +5,7 @@ class SplashScreen3 extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Base width for scaling
-    final baseWidth = 360.0; // Design baseline
-    final scaleFactor = screenWidth / baseWidth;
+    final textScale = MediaQuery.of(context).textScaleFactor;
 
     return Scaffold(
       backgroundColor: Color(0xFFF6FFFB),
@@ -17,75 +14,78 @@ class SplashScreen3 extends StatelessWidget {
           children: [
             // Top curved background
             Positioned(
-              top: -50 * scaleFactor,
+              top: -screenHeight * 0.05,
               left: 0,
               right: 0,
               child: Container(
                 width: screenWidth,
-                height: 310 * scaleFactor,
+                height: screenHeight * 0.35,
                 decoration: BoxDecoration(
                   color: Color(0xFFACE7C0).withOpacity(0.40),
                   borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(110 * scaleFactor),
+                    bottom: Radius.circular(screenHeight * 0.12),
                   ),
                 ),
               ),
             ),
+
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20 * scaleFactor),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(height: 60 * scaleFactor),
+                  SizedBox(height: screenHeight * 0.08),
+
+                  // Title and Subtitle
                   Container(
-                    padding: EdgeInsets.all(20 * scaleFactor),
+                    padding: EdgeInsets.all(screenWidth * 0.05),
                     child: Column(
                       children: [
                         Text(
                           "Plan your stay with ease.",
                           style: TextStyle(
-                            fontSize: 30 * scaleFactor,
+                            fontSize: 30 * textScale,
                             fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 10 * scaleFactor),
+                        SizedBox(height: screenHeight * 0.015),
                         Text(
-                          "Find top rated hotels and restaurant around your destination with just few steps",
+                          "Find top-rated hotels and restaurants around your destination with just a few steps.",
                           style: TextStyle(
-                            fontSize: 23 * scaleFactor,
-                            color: const Color.fromARGB(137, 72, 72, 72),
+                            fontSize: 18 * textScale,
+                            color: Colors.black87,
                           ),
                           textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 30 * scaleFactor),
+
+                  SizedBox(height: screenHeight * 0.04),
+
+                  // Option Cards with Adjusted Image Size & Reduced Spacing
                   OptionCard(
                     image: "assets/SplashScreen/hotels.png",
                     text: "Find the perfect stay",
                     color: Color(0xFFACE7C0).withOpacity(0.23),
-                    scaleFactor: scaleFactor,
                     imageFirst: true,
                   ),
                   OptionCard(
                     image: "assets/SplashScreen/table.png",
                     text: "Reserve a table",
                     color: Color(0xFFEFF2BF).withOpacity(0.41),
-                    scaleFactor: scaleFactor,
                     imageFirst: false,
                   ),
                   OptionCard(
                     image: "assets/SplashScreen/date.png",
                     text: "Manage your bookings",
                     color: Color(0xFFCDCDCD).withOpacity(0.23),
-                    scaleFactor: scaleFactor,
-                    isGrey: true,
                     imageFirst: true,
                   ),
+
                   Spacer(),
-                  SizedBox(height: 30 * scaleFactor),
+                  SizedBox(height: screenHeight * 0.05),
                 ],
               ),
             ),
@@ -96,49 +96,54 @@ class SplashScreen3 extends StatelessWidget {
   }
 }
 
+// ✅ Adjusted OptionCard with Larger Images & Reduced Spacing
 class OptionCard extends StatelessWidget {
   final String image;
   final String text;
   final Color? color;
-  final bool isGrey;
   final bool imageFirst;
-  final double scaleFactor;
 
   OptionCard({
     required this.image,
     required this.text,
     this.color,
-    this.isGrey = false,
-    this.imageFirst = true,
-    required this.scaleFactor,
+    required this.imageFirst,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final textScale = MediaQuery.of(context).textScaleFactor;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 15 * scaleFactor),
+      margin: EdgeInsets.only(bottom: screenWidth * 0.04),
       padding: EdgeInsets.symmetric(
-        vertical: 15 * scaleFactor,
-        horizontal: 20 * scaleFactor,
+        vertical: screenWidth * 0.03, // Slightly reduced padding
+        horizontal: screenWidth * 0.04,
       ),
       decoration: BoxDecoration(
-        color: color ?? (isGrey ? Colors.grey.shade300 : Colors.green.shade100),
-        borderRadius: BorderRadius.circular(15 * scaleFactor),
+        color: color ?? Colors.green.shade100,
+        borderRadius: BorderRadius.circular(screenWidth * 0.04),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center, // Align items vertically
         children: imageFirst
             ? [
+                // ✅ Increased Image Size
                 Image.asset(
                   image,
-                  width: 100 * scaleFactor,
-                  height: 90 * scaleFactor,
+                  width: screenWidth * 0.20, // 20% of screen width
+                  height: screenWidth * 0.20, // Keep square ratio
                 ),
-                SizedBox(width: 15 * scaleFactor),
+
+                // ✅ Reduced Spacing Between Image & Text
+                SizedBox(width: screenWidth * 0.03),
+
                 Expanded(
                   child: Text(
                     text,
                     style: TextStyle(
-                      fontSize: 19 * scaleFactor,
+                      fontSize: 20 * textScale, // Slightly bigger text
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -150,17 +155,20 @@ class OptionCard extends StatelessWidget {
                   child: Text(
                     text,
                     style: TextStyle(
-                      fontSize: 19 * scaleFactor,
+                      fontSize: 20 * textScale,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
                 ),
-                SizedBox(width: 15 * scaleFactor),
+
+                // ✅ Reduced Spacing Between Text & Image
+                SizedBox(width: screenWidth * 0.03),
+
                 Image.asset(
                   image,
-                  width: 100 * scaleFactor,
-                  height: 90 * scaleFactor,
+                  width: screenWidth * 0.20,
+                  height: screenWidth * 0.20,
                 ),
               ],
       ),

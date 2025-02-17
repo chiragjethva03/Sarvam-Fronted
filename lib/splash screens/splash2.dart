@@ -51,25 +51,37 @@ class SplashScreen2 extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Discover your next Adventure -",
-                        style: TextStyle(
-                          fontSize: 26 * scaleFactor,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown, // Ensures text scales properly
+                        child: Text(
+                          "Discover your next Adventure -",
+                          style: TextStyle(
+                            fontSize:
+                                24 * MediaQuery.of(context).textScaleFactor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      Text(
-                        "Book Flights, Train, Bus and",
-                        style: TextStyle(
-                          fontSize: 26 * scaleFactor,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "Book Flights, Train, Bus and",
+                          style: TextStyle(
+                            fontSize:
+                                24 * MediaQuery.of(context).textScaleFactor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      Text(
-                        "Explore Local Transportation",
-                        style: TextStyle(
-                          fontSize: 26 * scaleFactor,
-                          fontWeight: FontWeight.bold,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "Explore Local Transportation",
+                          style: TextStyle(
+                            fontSize:
+                                24 * MediaQuery.of(context).textScaleFactor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

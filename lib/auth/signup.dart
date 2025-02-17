@@ -16,110 +16,335 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _mobileNumberController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
 
   bool _isPasswordVisible = false;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
+  bool isLoading = false;
+  bool otpSent = false;
+
   Future<void> _signUp() async {
     if (_usernameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter your username!")),
-      );
+      _showSnackbar("Please enter your username!");
       return;
     }
 
-    if (_emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter your email address!")),
-      );
+    if (_emailController.text.isEmpty ||
+        !RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$')
+            .hasMatch(_emailController.text)) {
+      _showSnackbar("Please enter a valid Gmail address!");
       return;
     }
 
-    String email = _emailController.text;
-    RegExp emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
-    if (!emailRegex.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a valid Gmail address!")),
-      );
+    if (_mobileNumberController.text.isEmpty ||
+        !RegExp(r'^\d{10}$').hasMatch(_mobileNumberController.text)) {
+      _showSnackbar("Please enter a valid 10-digit mobile number!");
       return;
     }
 
-    if (_mobileNumberController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter your mobile number!")),
-      );
+    if (_passwordController.text.isEmpty ||
+        !RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%^&*(),.?":{}|<>]).{8,}$')
+            .hasMatch(_passwordController.text)) {
+      _showSnackbar(
+          "Password must contain uppercase, lowercase, number, and special character!");
       return;
     }
 
-    // Validate mobile number length and digits
-    if (!RegExp(r'^\d{10}$').hasMatch(_mobileNumberController.text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a valid 10-digit mobile number!")),
+    // Call API to send OTP
+    final String otpApiUrl = "http://192.168.96.182:4000/send-otp";
+    try {
+      final response = await http.post(
+        Uri.parse(otpApiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": _emailController.text.trim()}),
       );
+
+      if (response.statusCode == 200) {
+        _showSnackbar("OTP sent to your email!");
+        _showOtpDialog();
+      } else {
+        _showSnackbar("Failed to send OTP. Try again.");
+      }
+    } catch (e) {
+      _showSnackbar("Error connecting to server!");
+    }
+  }
+
+  bool isVerifying = false;
+  String otpStatusText = "Enter the OTP sent to your email"; // Default message
+
+  void _showOtpDialog() {
+    List<TextEditingController> _otpControllers =
+        List.generate(6, (index) => TextEditingController());
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: Color(0xFFF6FFFB), // ✅ Background Color
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.center, // ✅ Center Content
+                  children: [
+                    Text(
+                      otpStatusText,
+                      style: TextStyle(
+                        fontSize:
+                            16, // ✅ Reduced text size for better visibility
+                        fontWeight: FontWeight.bold,
+                        color: otpStatusText == "Invalid OTP"
+                            ? Colors.red
+                            : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 15),
+
+                    // ✅ Responsive OTP Fields with Border Hover Effect & Auto Focus
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        double boxSize = constraints.maxWidth *
+                            0.13; // Adjust width dynamically
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(6, (index) {
+                            return Container(
+                              width: boxSize,
+                              height: boxSize *
+                                  1.3, // ✅ Increased height for better touch
+                              margin: EdgeInsets.symmetric(horizontal: 5),
+                              child: Focus(
+                                onFocusChange: (hasFocus) {
+                                  setState(() {}); // Refresh UI on focus change
+                                },
+                                child: TextField(
+                                  controller: _otpControllers[index],
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  maxLength: 1,
+                                  autofocus:
+                                      index == 0, // ✅ Autofocus on first box
+                                  decoration: InputDecoration(
+                                    counterText: "",
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: _otpControllers[index]
+                                                .text
+                                                .isNotEmpty
+                                            ? Colors
+                                                .black // ✅ Black border when filled
+                                            : Colors.grey,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors
+                                            .black, // ✅ Hover & Focus Effect
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (value) {
+                                    if (value.isNotEmpty && index < 5) {
+                                      FocusScope.of(context)
+                                          .nextFocus(); // ✅ Move to next box
+                                    }
+                                    if (value.isEmpty && index > 0) {
+                                      FocusScope.of(context)
+                                          .previousFocus(); // ✅ Move to previous box
+                                    }
+                                    if (_otpControllers
+                                        .every((c) => c.text.isNotEmpty)) {
+                                      setState(() {
+                                        otpStatusText = "Verifying OTP...";
+                                        isVerifying = true;
+                                      });
+                                      _verifyOtp(_otpControllers, setState);
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          }),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: 20),
+
+                    // ✅ Loader when verifying
+                    isVerifying
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              SizedBox(width: 10),
+                              Text("Verifying OTP..."),
+                            ],
+                          )
+                        : Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  otpStatusText =
+                                      "Enter the OTP sent to your email";
+                                  isVerifying = false; // Reset state
+                                });
+                                _resendOtp();
+                              },
+                              child: Text(
+                                "Resend OTP",
+                                style: TextStyle(
+                                  color: Colors.blue, // ✅ Resend OTP in blue
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+// ✅ OTP Verification Function (Now with proper backend checking)
+  Future<void> _verifyOtp(
+      List<TextEditingController> otpControllers, Function setState) async {
+    String otp = otpControllers.map((controller) => controller.text).join();
+
+    if (otp.length < 6) {
+      setState(() {
+        isVerifying = false;
+        otpStatusText = "Invalid OTP";
+      });
       return;
     }
 
-    if (_passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter your password!")),
-      );
-      return;
-    }
-
-    String password = _passwordController.text;
-    RegExp passwordRegex = RegExp(
-        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%^&*(),.?":{}|<>]).{8,}$');
-    if (!passwordRegex.hasMatch(password)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character!")),
-      );
-      return;
-    }
-
-    final String apiUrl = "http://192.168.96.182:4000/signup";
+    final String verifyOtpApiUrl = "http://192.168.96.182:4000/verify-otp";
 
     try {
-      // Constructing the JSON payload
-      final Map<String, dynamic> payload = {
-        "username": _usernameController.text.trim(),
-        "email": _emailController.text.trim(),
-        "password": _passwordController.text,
-        "mobileNumber": _mobileNumberController.text.trim()
-      };
+      await Future.delayed(Duration(seconds: 2)); // ✅ Adds delay for smooth UX
 
-      print("Payload Sent to Backend: $payload");
+      final response = await http.post(
+        Uri.parse(verifyOtpApiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": _emailController.text.trim(), "otp": otp}),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData["success"] == true) {
+        Navigator.pop(context); // ✅ Close the dialog
+        Navigator.pushReplacement(
+          // ✅ Move to login page
+          context,
+          MaterialPageRoute(builder: (context) => LoginPage()),
+        );
+      } else {
+        setState(() {
+          isVerifying = false;
+          otpStatusText = "Invalid OTP";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isVerifying = false;
+        otpStatusText = "Invalid OTP";
+      });
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final String resendOtpApiUrl = "http://192.168.96.182:4000/send-otp";
+
+    try {
+      final response = await http.post(
+        Uri.parse(resendOtpApiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": _emailController.text.trim()}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          isLoading = false;
+        });
+        _showSnackbar("OTP Resent! Check your email.");
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        _showSnackbar("Failed to resend OTP. Try again.");
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      _showSnackbar("Error connecting to server!");
+    }
+  }
+
+  Future<void> _sendDataToBackend() async {
+    final String apiUrl = "http://192.168.96.182:4000/signup";
+    final Map<String, dynamic> payload = {
+      "username": _usernameController.text.trim(),
+      "email": _emailController.text.trim(),
+      "password": _passwordController.text,
+      "mobileNumber": _mobileNumberController.text.trim()
+    };
+    try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(payload),
       );
-
-      final responseData = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(responseData["message"])),
-        );
+        _showSnackbar("Signup successful!");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LoginPage()),
         );
       } else {
-        print(
-            "Response Error: ${response.body}"); // Debug: Print error response
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Signup failed! Try again.")),
-        );
+        _showSnackbar("Signup failed! Try again.");
       }
     } catch (e) {
-      print("Exception: $e"); // Debug: Print the exception
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error connecting to server!")),
-      );
+      _showSnackbar("Error connecting to server!");
     }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -288,13 +513,21 @@ class _SignUpState extends State<SignUp> {
                             color: Colors.black,
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFACE7C0).withOpacity(0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(18 * scaleFactor),
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Color(0xFFACE7C0).withOpacity(0.3)),
+                          shape: WidgetStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(18 * scaleFactor),
+                            ),
                           ),
-                          elevation: 0,
+                          elevation: WidgetStateProperty.all(0), // No shadow
+
+                          // ✅ Fully removes hover, focus, splash, and highlight effects
+                          overlayColor:
+                              WidgetStateProperty.all(Colors.transparent),
+                          splashFactory: NoSplash.splashFactory,
                         ),
                       ),
                     ),
@@ -373,7 +606,7 @@ class _SignUpState extends State<SignUp> {
     return Row(
       children: [
         Container(
-          height: 57 * scaleFactor, // Ensures consistent height
+          height: 60 * scaleFactor, // Ensures consistent height
           width: 70 * scaleFactor, // Increased width
           decoration: BoxDecoration(
             color: Color(0xFFACE7C0).withOpacity(0.2),
