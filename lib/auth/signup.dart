@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'AuthorizedWidget.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -26,6 +27,19 @@ class _SignUpState extends State<SignUp> {
   bool isLoading = false;
   bool otpSent = false;
 
+  // List of OTP controllers
+  List<TextEditingController> _otpControllers =
+      List.generate(6, (index) => TextEditingController());
+
+  List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
+  List<Color> otpBorderColors = List.generate(6, (_) => Colors.grey);
+
+// State variables
+  bool isVerifying = false;
+  String otpErrorMessage = "";
+  bool isResending = false;
+  bool showResendLoader = false; // To show/hide resend text & loader
+
   Future<void> _signUp() async {
     if (_usernameController.text.isEmpty) {
       _showSnackbar("Please enter your username!");
@@ -33,7 +47,7 @@ class _SignUpState extends State<SignUp> {
     }
 
     if (_emailController.text.isEmpty ||
-        !RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$')
+        !RegExp(r'^[a-z0-9._%+-]+@gmail\.com$')
             .hasMatch(_emailController.text)) {
       _showSnackbar("Please enter a valid Gmail address!");
       return;
@@ -78,146 +92,154 @@ class _SignUpState extends State<SignUp> {
       isDismissible: false,
       isScrollControlled: true,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Verify Your OTP",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
               ),
-              SizedBox(height: 10),
-              Text(
-                "Enter the 6-digit OTP sent to your email",
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 20),
-              Form(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(6, (index) {
-                    return SizedBox(
-                      width: 40,
-                      child: TextField(
-                        controller: _otpControllers[index],
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 1,
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          counterText: "",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          if (value.isNotEmpty) {
-                            if (index < 5) {
-                              FocusScope.of(context).nextFocus();
-                            } else {
-                              _verifyOtp(
-                                  _otpControllers.map((c) => c.text).join());
-                            }
-                          }
-                        },
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              SizedBox(height: 20),
-              isVerifying
-                  ? CircularProgressIndicator()
-                  : Text(
-                      otpErrorMessage,
-                      style: TextStyle(color: Colors.red, fontSize: 14),
-                    ),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black), // Default text style
-                    children: [
-                      TextSpan(
-                        text: "Don't receive OTP? click to ",
-                      ),
-                      TextSpan(
-                        text: "Resend",
-                        style: TextStyle(
-                          color: Colors.blue, // Blue color for Resend text
-                          fontSize: 16,
-                          decoration:
-                              TextDecoration.underline, // Underline effect
-                          fontWeight: FontWeight.bold,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            _resendOtp(); // Call function when "Resend" is clicked
-                            _showSnackbar(
-                                "OTP Resent! Check your email."); // Show Snackbar
-                          },
-                      ),
-                    ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Verify Your OTP",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-                ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Enter the 6-digit OTP sent to your email",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 20),
+                  Form(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(6, (index) {
+                        return SizedBox(
+                          width: 40,
+                          child: MouseRegion(
+                            onEnter: (_) {
+                              setState(() {
+                                otpBorderColors[index] =
+                                    Colors.black; // Black on hover
+                              });
+                            },
+                            onExit: (_) {
+                              setState(() {
+                                otpBorderColors[index] =
+                                    Colors.blue; // Change to blue after hover
+                              });
+                            },
+                            child: TextField(
+                              controller: _otpControllers[index],
+                              focusNode: _otpFocusNodes[index],
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              maxLength: 1,
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              decoration: InputDecoration(
+                                counterText: "",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      BorderSide(color: otpBorderColors[index]),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value.isNotEmpty) {
+                                  if (index < 5) {
+                                    FocusScope.of(context).requestFocus(
+                                        _otpFocusNodes[index + 1]);
+                                  } else {
+                                    _verifyOtp(
+                                        _otpControllers
+                                            .map((c) => c.text)
+                                            .join(),
+                                        setState);
+                                  }
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  isVerifying
+                      ? CircularProgressIndicator()
+                      : Text(
+                          otpErrorMessage,
+                          style: TextStyle(color: Colors.red, fontSize: 14),
+                        ),
+                  SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Text("Don't receive OTP? Click to "),
+                        GestureDetector(
+                          onTap: () async {
+                            if (!isResending) {
+                              setState(() {
+                                isResending = true;
+                              });
+
+                              await _resendOtp(); // Call function to resend OTP
+
+                              setState(() {
+                                showResendLoader = true; // Show loader
+                              });
+
+                              await Future.delayed(
+                                  Duration(seconds: 4)); // Wait for 4 seconds
+
+                              setState(() {
+                                showResendLoader =
+                                    false; // Remove loader, show text again
+                                isResending = false;
+                              });
+
+                              _showSnackbar("OTP Resent! Check your email.");
+                            }
+                          },
+                          child: showResendLoader
+                              ? Padding(
+                                  padding: EdgeInsets.only(left: 10),
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors
+                                          .blue, // Loader color set to blue
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  "Resend",
+                                  style: TextStyle(
+                                    color: Colors.blue, // Keep text color blue
+                                    fontSize: 16,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
-  }
-
-// List of OTP controllers
-  List<TextEditingController> _otpControllers =
-      List.generate(6, (index) => TextEditingController());
-
-// State variables
-  bool isVerifying = false;
-  String otpErrorMessage = "";
-
-// Updated OTP verification function
-  Future<void> _verifyOtp(String otp) async {
-    setState(() {
-      isVerifying = true;
-      otpErrorMessage = "";
-    });
-
-    final String verifyOtpApiUrl = "http://192.168.96.182:4000/verify-otp";
-    try {
-      final response = await http.post(
-        Uri.parse(verifyOtpApiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"email": _emailController.text.trim(), "otp": otp}),
-      );
-
-      if (response.statusCode == 200) {
-        Navigator.pop(context);
-        _sendDataToBackend();
-      } else {
-        setState(() {
-          otpErrorMessage = "Invalid OTP. Try again.";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        otpErrorMessage = "Error connecting to server!";
-      });
-    } finally {
-      setState(() {
-        isVerifying = false;
-      });
-    }
   }
 
   Future<void> _resendOtp() async {
@@ -238,6 +260,83 @@ class _SignUpState extends State<SignUp> {
     } catch (e) {
       _showSnackbar("Error connecting to server!");
     }
+  }
+
+// Updated OTP verification function
+  Future<void> _verifyOtp(String otp, StateSetter setState) async {
+    setState(() {
+      isVerifying = true;
+      otpErrorMessage = "";
+    });
+
+    final String verifyOtpApiUrl = "http://192.168.96.182:4000/verify-otp";
+
+    try {
+      final response = await http.post(
+        Uri.parse(verifyOtpApiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": _emailController.text.trim(), "otp": otp}),
+      );
+
+      print("🔹 Request Sent: $verifyOtpApiUrl");
+      print("🔹 Response Status Code: ${response.statusCode}");
+      print("🔹 Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        Navigator.pop(context);
+        _sendDataToBackend();
+      } else if (response.statusCode == 400) {
+        final responseData = jsonDecode(response.body);
+        setState(() {
+          otpErrorMessage =
+              responseData["message"] ?? "Invalid OTP! Try again.";
+          _clearOtpFields(setState);
+        });
+
+        // ✅ Ensure focus request is safe to avoid crashes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_otpFocusNodes.isNotEmpty && _otpFocusNodes[0].context != null) {
+            FocusScope.of(context).requestFocus(_otpFocusNodes[0]);
+          }
+        });
+      } else {
+        setState(() {
+          otpErrorMessage = "Failed to verify OTP. Try again.";
+          _clearOtpFields(setState);
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_otpFocusNodes.isNotEmpty && _otpFocusNodes[0].context != null) {
+            FocusScope.of(context).requestFocus(_otpFocusNodes[0]);
+          }
+        });
+      }
+    } catch (e) {
+      print("❌ Network Error: $e");
+      setState(() {
+        otpErrorMessage =
+            "Error connecting to server! Please check your internet.";
+        _clearOtpFields(setState);
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_otpFocusNodes.isNotEmpty && _otpFocusNodes[0].context != null) {
+          FocusScope.of(context).requestFocus(_otpFocusNodes[0]);
+        }
+      });
+    } finally {
+      setState(() {
+        isVerifying = false;
+      });
+    }
+  }
+
+  void _clearOtpFields(StateSetter setState) {
+    setState(() {
+      for (var controller in _otpControllers) {
+        controller.clear();
+      }
+    });
   }
 
   Future<void> _sendDataToBackend() async {
