@@ -6,7 +6,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
-import 'AuthorizedWidget.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -278,10 +277,6 @@ class _SignUpState extends State<SignUp> {
         body: jsonEncode({"email": _emailController.text.trim(), "otp": otp}),
       );
 
-      print("🔹 Request Sent: $verifyOtpApiUrl");
-      print("🔹 Response Status Code: ${response.statusCode}");
-      print("🔹 Response Body: ${response.body}");
-
       if (response.statusCode == 200) {
         Navigator.pop(context);
         _sendDataToBackend();
@@ -340,30 +335,45 @@ class _SignUpState extends State<SignUp> {
   }
 
   Future<void> _sendDataToBackend() async {
-    final String apiUrl = "http://192.168.96.182:4000/signup";
-    final Map<String, dynamic> payload = {
-      "username": _usernameController.text.trim(),
-      "email": _emailController.text.trim(),
-      "password": _passwordController.text,
-      "mobileNumber": _mobileNumberController.text.trim()
-    };
+    final String backendUrl = "http://192.168.96.182:4000/signup";
+
     try {
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode(payload),
+        body: jsonEncode({
+          "username": _usernameController.text.trim(),
+          "email": _emailController.text.trim(),
+          "mobileNumber": _mobileNumberController.text.trim(),
+          "password": _passwordController.text.trim()
+        }),
       );
-      if (response.statusCode == 200) {
-        _showSnackbar("Signup successful!");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-        );
+
+      print("🔹 Request Sent to Backend: $backendUrl");
+      print("🔹 Response Status Code: ${response.statusCode}");
+      print("🔹 Response Body: ${response.body}");
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSnackbar("✅ Signup Successful!");
+
+        // ✅ Navigate to the login screen after successful signup
+        Future.delayed(Duration(seconds: 1), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        });
+      } else if (response.statusCode == 400) {
+        // ❌ Handle duplicate email/mobile number error
+        _showSnackbar(responseData["message"] ?? "Signup failed! Try again.");
       } else {
         _showSnackbar("Signup failed! Try again.");
       }
     } catch (e) {
-      _showSnackbar("Error connecting to server!");
+      print("❌ Network Error: $e");
+      _showSnackbar("Error connecting to server! Please try again.");
     }
   }
 
@@ -629,67 +639,70 @@ class _SignUpState extends State<SignUp> {
   }
 
   Widget _buildMobileNumberField(double scaleFactor) {
-    return Row(
-      children: [
-        Container(
-          height: 60 * scaleFactor, // Ensures consistent height
-          width: 70 * scaleFactor, // Increased width
-          decoration: BoxDecoration(
-            color: Color(0xFFACE7C0).withOpacity(0.2),
+    return SizedBox(
+      width: double.infinity, // Full width input field
+      height: 60 * scaleFactor, // Consistent height with other fields
+      child: TextField(
+        controller: _mobileNumberController,
+        keyboardType: TextInputType.phone,
+        cursorColor: Colors.black,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
+        decoration: InputDecoration(
+          hintText: "Enter your 10 digit mobile number",
+          hintStyle: TextStyle(color: Colors.black54, fontSize: 16),
+          filled: true,
+          fillColor:
+              Color(0xFFACE7C0).withOpacity(0.2), // Light green background
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18 * scaleFactor),
-            border: Border.all(
-                color: Colors.black.withOpacity(0.1)), // Default border color
+            borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 12 * scaleFactor),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.phone, color: Colors.black, size: 20 * scaleFactor),
-              SizedBox(width: 3 * scaleFactor),
-              Text(
-                "+91",
-                style: TextStyle(
-                  fontSize: 16 * scaleFactor,
-                  color: Colors.black,
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18 * scaleFactor),
+            borderSide: BorderSide(color: Colors.black),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18 * scaleFactor),
+            borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          ),
+          prefixIcon: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12), // Adjust padding
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone,
+                    color: Colors.black54,
+                    size: 20 * scaleFactor), // Phone icon
+                SizedBox(width: 5 * scaleFactor), // Spacing
+                Text(
+                  "+91",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16 * scaleFactor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: 10 * scaleFactor),
-        Expanded(
-          child: SizedBox(
-            height: 60 * scaleFactor, // Ensures consistent height
-            child: TextField(
-              controller: _mobileNumberController,
-              keyboardType: TextInputType.phone,
-              cursorColor: Colors.black,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
+                SizedBox(width: 8 * scaleFactor), // Space before separator
+                Container(
+                  height: 24 * scaleFactor,
+                  width: 1.5,
+                  color: Colors.black38, // Thin separator
+                ),
+                SizedBox(width: 8 * scaleFactor), // Space after separator
               ],
-              decoration: InputDecoration(
-                hintText: "Enter mobile number",
-                hintStyle: TextStyle(color: Colors.black54),
-                filled: true,
-                fillColor: Color(0xFFACE7C0).withOpacity(0.2),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18 * scaleFactor),
-                  borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18 * scaleFactor),
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18 * scaleFactor),
-                  borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-                ),
-              ),
             ),
           ),
+          prefixIconConstraints: BoxConstraints(
+            minWidth: 0,
+            minHeight: 0,
+            maxWidth: 110 * scaleFactor, // Ensures proper spacing
+          ),
         ),
-      ],
+        style: TextStyle(fontSize: 16 * scaleFactor),
+      ),
     );
   }
 

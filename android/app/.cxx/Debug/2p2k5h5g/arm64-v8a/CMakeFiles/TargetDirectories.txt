@@ -1,0 +1,2 @@
+C:/Users/jethv/Desktop/Sarvam/Sarvam-Fronted/android/app/.cxx/Debug/2p2k5h5g/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/jethv/Desktop/Sarvam/Sarvam-Fronted/android/app/.cxx/Debug/2p2k5h5g/arm64-v8a/CMakeFiles/rebuild_cache.dir

@@ -34,7 +34,7 @@ class SplashScreen3 extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(height: screenHeight * 0.08),
+                  SizedBox(height: screenHeight * 0.04),
 
                   // Title and Subtitle
                   Container(
@@ -62,7 +62,7 @@ class SplashScreen3 extends StatelessWidget {
                     ),
                   ),
 
-                  SizedBox(height: screenHeight * 0.04),
+                  SizedBox(height: screenHeight * 0.07),
 
                   // Option Cards with Adjusted Image Size & Reduced Spacing
                   OptionCard(
