@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Sarvam/screens/home.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -71,6 +73,65 @@ class _LoginPageState extends State<LoginPage> {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      await _googleSignIn.signOut(); // Ensure a fresh login
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) return; // User canceled login
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // ✅ Send user details to backend to check if they exist
+        final response = await http.post(
+          Uri.parse("http://192.168.96.182:4000/google-login"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "email": user.email,
+            "username": user.displayName ?? "Google User",
+            "profilePic": user.photoURL,
+          }),
+        );
+
+        final responseData = jsonDecode(response.body);
+
+        if (response.statusCode == 200) {
+          // ✅ Store JWT Token
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString("auth_token", responseData["token"]);
+
+          // ✅ Navigate to Home Page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(responseData["message"] ?? "Login failed!")),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error signing in with Google!")),
+      );
+    }
   }
 
   @override
@@ -222,7 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed:
-                                () {}, // Add Google sign-in function here
+                                _signInWithGoogle, // Add Google sign-in function here
                             icon: Image.asset(
                               "assets/icons/google.png",
                               height: 27 * scaleFactor,

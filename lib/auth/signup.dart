@@ -6,6 +6,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:Sarvam/screens/home.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -385,10 +387,10 @@ class _SignUpState extends State<SignUp> {
 
   Future<void> _signInWithGoogle() async {
     try {
-      await _googleSignIn.signOut();
+      await _googleSignIn.signOut(); // Optional: Ensures fresh login
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      if (googleUser == null) return;
+      if (googleUser == null) return; // User canceled login
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
@@ -404,13 +406,34 @@ class _SignUpState extends State<SignUp> {
       User? user = userCredential.user;
 
       if (user != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Welcome, ${user.displayName}!")),
+        // ✅ Send user details to backend to get JWT
+        final response = await http.post(
+          Uri.parse("http://192.168.96.182:4000/google-login"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "email": user.email,
+            "username": user.displayName ?? "Google User",
+            "profilePic": user.photoURL,
+          }),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-        );
+
+        final responseData = jsonDecode(response.body);
+
+        if (response.statusCode == 200) {
+          // ✅ Store JWT Token
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString("auth_token", responseData["token"]);
+
+          // ✅ Navigate directly to Home Page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(responseData["message"] ?? "Login failed!")),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -495,14 +518,13 @@ class _SignUpState extends State<SignUp> {
                       child: ElevatedButton(
                         onPressed: _signUp,
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 15 * scaleFactor),
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(18 * scaleFactor),
-                          ),
-                        ),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 15 * scaleFactor),
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(18 * scaleFactor),
+                            )),
                         child: Text(
                           "Create account",
                           style: TextStyle(
