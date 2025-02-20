@@ -5,9 +5,9 @@ import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart';
+// import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:Sarvam/screens/home.dart';
+import 'package:Sarvam/screens/BottomaNvigation.dart';
 
 class SignUp extends StatefulWidget {
   @override

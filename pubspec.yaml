@@ -81,6 +81,7 @@ flutter:
     - assets/icons/
     - assets/Onbording/
     - assets/SplashScreen/
+    - assets/bottomNavigation/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
