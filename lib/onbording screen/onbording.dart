@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:Sarvam/splash%20screens/splash_screen_main.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:Sarvam/consts/App_Colors.dart';
 
 class OnbordingScreen extends StatefulWidget {
   @override
@@ -26,7 +27,7 @@ class _OnboardingScreenState extends State<OnbordingScreen> {
     final double fixedFontSize = 28.0; // Fixed font size for text
 
     return Scaffold(
-      backgroundColor: Color(0xFFF6FFFB),
+      backgroundColor: AppColor.App_Bg_Primary,
       body: Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),

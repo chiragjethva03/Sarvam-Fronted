@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 // import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Sarvam/screens/BottomaNvigation.dart';
+import 'package:Sarvam/consts/App_Colors.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -387,7 +388,7 @@ class _SignUpState extends State<SignUp> {
 
   Future<void> _signInWithGoogle() async {
     try {
-      await _googleSignIn.signOut(); // Optional: Ensures fresh login
+      await _googleSignIn.signOut(); // Ensure a fresh login
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) return; // User canceled login
@@ -406,9 +407,9 @@ class _SignUpState extends State<SignUp> {
       User? user = userCredential.user;
 
       if (user != null) {
-        // ✅ Send user details to backend to get JWT
+        // ✅ Send user details to backend to check if they exist
         final response = await http.post(
-          Uri.parse("http://192.168.96.182:4000/google-login"),
+          Uri.parse("http://192.168.144.182:4000/google-login"),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({
             "email": user.email,
@@ -424,7 +425,7 @@ class _SignUpState extends State<SignUp> {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString("auth_token", responseData["token"]);
 
-          // ✅ Navigate directly to Home Page
+          // ✅ Navigate to Home Page
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => HomePage()),
@@ -455,7 +456,7 @@ class _SignUpState extends State<SignUp> {
         selectionHandleColor: Colors.blue,
       ),
       child: Scaffold(
-        backgroundColor: Color(0xFFF6FFFB),
+        backgroundColor: AppColor.App_Bg_Primary,
         body: SingleChildScrollView(
           child: Stack(
             children: [

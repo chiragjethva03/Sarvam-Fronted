@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Sarvam/auth/signup.dart'; // Correct home screen path
 import 'package:google_fonts/google_fonts.dart';
+import 'package:Sarvam/consts/App_Colors.dart';
 
 class SplashScreen4 extends StatelessWidget {
   @override
@@ -13,7 +14,7 @@ class SplashScreen4 extends StatelessWidget {
     final scaleFactor = screenWidth / baseWidth;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF6FFFB),
+      backgroundColor: AppColor.App_Bg_Primary,
       body: Stack(
         children: [
           // Oval shape decoration

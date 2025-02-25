@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Sarvam/screens/BottomaNvigation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:Sarvam/consts/App_Colors.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -100,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       if (user != null) {
         // ✅ Send user details to backend to check if they exist
         final response = await http.post(
-          Uri.parse("http://192.168.96.182:4000/google-login"),
+          Uri.parse("http://192.168.144.182:4000/google-login"),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({
             "email": user.email,
@@ -142,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
     final scaleFactor = screenWidth / baseWidth;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF6FFFB),
+      backgroundColor: AppColor.App_Bg_Primary,
       body: SingleChildScrollView(
         child: Stack(
           children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:Sarvam/consts/App_Colors.dart';
 
 class SplashScreen3 extends StatelessWidget {
   @override
@@ -8,7 +9,7 @@ class SplashScreen3 extends StatelessWidget {
     final textScale = MediaQuery.of(context).textScaleFactor;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF6FFFB),
+      backgroundColor: AppColor.App_Bg_Primary,
       body: SafeArea(
         child: Stack(
           children: [
