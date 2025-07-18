@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _signIn(BuildContext context) async {
-    final String backendUrl = "http://192.168.96.182:4000/login";
+    final String backendUrl = "http://10.171.58.182:4000/login";
 
     if (_emailController.text.isEmpty) {
       _showSnackbar(context, "Please enter your email!");

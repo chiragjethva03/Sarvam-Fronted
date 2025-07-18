@@ -69,7 +69,7 @@ class _SignUpState extends State<SignUp> {
       return;
     }
     // Call API to send OTP
-    final String otpApiUrl = "http://192.168.96.182:4000/send-otp";
+    final String otpApiUrl = "http://10.171.58.182:4000/send-otp";
     try {
       final response = await http.post(
         Uri.parse(otpApiUrl),
